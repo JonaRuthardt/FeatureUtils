@@ -105,6 +105,19 @@ class FeatureUtils:
         """
         
         return self.feature_io.list_keys()
+    
+    def exists(self, key: str) -> bool:
+        """
+        Checks if a feature exists for a given key.
+        
+        Args:
+            key (str): Unique key for the feature.
+        
+        Returns:
+            bool: True if the feature exists, False otherwise.
+        """
+        
+        return self.feature_io.exists(self.convert_key(key))
 
     def list_features(self, key: str = None) -> List[str]:
         """
