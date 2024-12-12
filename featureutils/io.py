@@ -214,7 +214,7 @@ class ZIPFeatureIO(FeatureIO):
                 return list(set(["_".join(name.split("_")[1:]).split(".")[0] for name in zf.namelist()]))
     
     def save_shard(self):
-        if self.staging_dir is None or self.current_shard is None:
+        if self.current_shard is None:
             return
         # Create a ZIP archive for the current shard
         shard_base_path = self.staging_dir if self.staging_dir is not None else self.base_dir
@@ -296,6 +296,8 @@ class ZIPFeatureIO(FeatureIO):
         if not self.staged:
             # Extract all features to the final storage location
             for shard in tqdm(self.metadata["shards"], desc="Staging data"):
+                if (self.staging_dir / shard).exists():
+                    continue
                 with zipfile.ZipFile(self.base_dir / (shard + ".zip"), "r") as zf:
                     zf.extractall(self.staging_dir / shard)
             self.staged = True
