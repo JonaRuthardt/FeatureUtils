@@ -81,6 +81,8 @@ exists = feature_utils.exists("example_id")
 feature_utils.delete_feature("example_id")
 ```
 
+---
+
 ## Citation
 
 If you use FeatureUtils in your research, please consider citing it with the following BibTeX entry:
@@ -91,13 +93,17 @@ If you use FeatureUtils in your research, please consider citing it with the fol
   year = {2024},
   publisher = {GitHub},
   journal = {GitHub repository},
-  howpublished = {\url{https://github.com/yourusername/featureutils}},
+  howpublished = {\url{https://github.com/JonaRuthardt/FeatureUtils}},
 }
 ```
+
+---
 
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
+
+---
 
 ## Contact and Contributing
 For questions or support, open an issue on the GitHub repository. Contributions and feedback are always welcome. 
