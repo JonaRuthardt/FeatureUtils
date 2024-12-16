@@ -19,6 +19,7 @@ setup(
         'torch',
         'tqdm',
         'portalocker',
+        'numpy',
     ],
     include_package_data=True,
     zip_safe=False,
