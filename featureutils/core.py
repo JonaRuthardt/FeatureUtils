@@ -9,7 +9,8 @@ from featureutils.dataset import TorchFeatureDataset
 
 class FeatureUtils:
     def __init__(self, base_dir: str, staging_dir: str = None, feature_num: int = 1,
-                 storage_backend: str = "ZIP", shard_size: int = 10000):
+                 storage_backend: str = "ZIP", shard_size: int = 10000,
+                 require_features_exist=False):
         """
         Initializes the FeatureUtils library core class.
 
@@ -20,6 +21,7 @@ class FeatureUtils:
             storage_backend (str): Storage backend for feature data [one of "HDF5", "ZIP"].
             shard_size (int): Maximum number of features per shard.
             allow_overwrite (bool): Whether to allow overwriting existing features with same key.
+            require_features_exist (bool): Whether to raise an error if features do not exist.
         """
         
         self.base_dir = Path(base_dir)
@@ -31,7 +33,7 @@ class FeatureUtils:
         # Load or initialize metadata and feature io
         assert storage_backend in ["ZIP"], "Invalid storage backend. Must be one of 'HDF5' or 'ZIP'."
         if storage_backend == "ZIP":
-            self.feature_io = ZIPFeatureIO(self.base_dir, self.staging_dir, shard_size)
+            self.feature_io = ZIPFeatureIO(self.base_dir, self.staging_dir, shard_size, require_features_exist)
     
     def convert_key(self, key: Any) -> str:
         """
@@ -132,13 +134,16 @@ class FeatureUtils:
         
         return self.feature_io.list_features(self.convert_key(key))
     
-    def stage_data(self) -> None:
+    def stage_data(self, features: List[str] = None) -> None:
         """
         Stages data to disk.
+        
+        Args:
+            features (List[str]): List of features to stage.
         """
         
         self.save()
-        self.feature_io.stage_data()
+        self.feature_io.stage_data(features)
     
     def save(self) -> None:
         """

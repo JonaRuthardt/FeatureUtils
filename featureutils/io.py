@@ -1,5 +1,3 @@
-print("Starting test...")
-
 import os
 import io
 import datetime
@@ -19,7 +17,7 @@ class FeatureIO(ABC):
     Abstract base class for feature storage backends.
     """
     
-    def __init__(self, base_dir: Path, staging_dir: Path, shard_size: int):
+    def __init__(self, base_dir: Path, staging_dir: Path, shard_size: int, require_features_exist=False):
         """
         Initializes the feature I/O base class that handles basic feature storage operations.
         All feature I/O implementations should inherit from this class.
@@ -28,6 +26,7 @@ class FeatureIO(ABC):
             base_dir (str): Directory for storing feature shards.
             staging_dir (str): Directory for temporary files and staging area.
             shard_size (int): Maximum number of features per shard.
+            require_features_exist (bool): Whether to raise an error if features do not exist.
         """
         
         self.base_dir = base_dir
@@ -39,7 +38,7 @@ class FeatureIO(ABC):
         
         self.metadata_file = self.base_dir / "metadata.json"
         
-        self._load_metadata()
+        self._load_metadata(require_features_exist)
         self.tmp_metadata = self._get_default_metadata()
 
     @abstractmethod
@@ -52,13 +51,12 @@ class FeatureIO(ABC):
         """
         raise NotImplementedError
 
-    def _load_metadata(self) -> None:
+    def _load_metadata(self, require_features_exist: bool) -> None:
         """
         Loads metadata for feature management.
         
         Args:
-            lock (bool): Whether to acquire an additional lock on the metadata file.
-            file (Any): File object to load metadata from.
+            require_features_exist (bool): Whether to raise an error if features do not exist.
         """
         if self.metadata_file.exists():
             with open(self.metadata_file, 'r') as f:
@@ -66,6 +64,8 @@ class FeatureIO(ABC):
                 self.metadata = json.load(f)
                 portalocker.lock(f, portalocker.LockFlags.UNBLOCK)
         else:
+            if require_features_exist:
+                raise ValueError(f"No metadata for features found at {self.metadata_file}. Ensure path is correct or store features first.")
             self.metadata = self._get_default_metadata()
             with open(self.metadata_file, 'w') as f:
                 portalocker.lock(f, portalocker.LockFlags.EXCLUSIVE)
@@ -177,15 +177,18 @@ class FeatureIO(ABC):
         raise NotImplementedError
     
     @abstractmethod
-    def stage_data(self) -> None:
+    def stage_data(self, features: List[str] = None) -> None:
         """
         Stage data to the final storage location.
+        
+        Args:
+            features (List[str]): List of features to stage
         """
         raise NotImplementedError
     
     
 class ZIPFeatureIO(FeatureIO):
-    def __init__(self, base_dir: Path, staging_dir: Path, shard_size: int):
+    def __init__(self, base_dir: Path, staging_dir: Path, shard_size: int, require_features_exist: bool = False):
         """
         Initializes the ZIP feature I/O implementation.
         """
@@ -290,16 +293,21 @@ class ZIPFeatureIO(FeatureIO):
                 f.truncate()
                 portalocker.lock(f, portalocker.LockFlags.UNBLOCK)
     
-    def stage_data(self):
+    def stage_data(self, features=None):
         if self.staging_dir is None:
             raise ValueError("Temporary directory for staging not provided.")
         if not self.staged:
             # Extract all features to the final storage location
-            for shard in tqdm(self.metadata["shards"], desc="Staging data"):
+            for shard in tqdm(self.metadata["shards"], desc="Staging data", total=len(self.metadata["shards"])):
                 if (self.staging_dir / shard).exists():
                     continue
                 with zipfile.ZipFile(self.base_dir / (shard + ".zip"), "r") as zf:
-                    zf.extractall(self.staging_dir / shard)
+                    if features is None:
+                        files = None
+                    else:
+                        files = [f for f in zf.namelist() if any([f.endswith(f"_{feature}.pt") for feature in features])]
+                    zf.extractall(self.staging_dir / shard, files)
+                        
             self.staged = True
         else:
             raise ValueError("Data has already been staged.")
