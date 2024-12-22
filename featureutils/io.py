@@ -127,6 +127,16 @@ class FeatureIO(ABC):
         raise NotImplementedError
     
     @abstractmethod
+    def delete_features(self, keys: List[str]) -> None:
+        """
+        Delete features by their keys.
+        
+        Args:
+            keys (List[str]): List of unique keys for the features.
+        """
+        raise NotImplementedError
+        
+    @abstractmethod
     def load_feature(self, key: str, feature_names: List[str]) -> Dict[str, torch.Tensor]:
         """
         Load features by their key and names.
@@ -288,6 +298,18 @@ class ZIPFeatureIO(FeatureIO):
                 self.metadata = json.load(f)
                 del self.metadata["key2shard"][key]
                 self.metadata["feature_count"] -= 1
+                f.seek(0)
+                json.dump(self.metadata, f, indent=4)
+                f.truncate()
+                portalocker.lock(f, portalocker.LockFlags.UNBLOCK)
+                
+    def delete_features(self, keys):
+        with self.thread_lock, open(self.metadata_file, 'r+') as f:
+                portalocker.lock(f, portalocker.LockFlags.EXCLUSIVE)
+                self.metadata = json.load(f)
+                for key in keys:
+                    del self.metadata["key2shard"][key]
+                    self.metadata["feature_count"] -= 1
                 f.seek(0)
                 json.dump(self.metadata, f, indent=4)
                 f.truncate()

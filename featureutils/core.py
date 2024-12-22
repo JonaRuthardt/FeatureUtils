@@ -97,6 +97,17 @@ class FeatureUtils:
         """
         
         self.feature_io.delete_feature(self.convert_key(key))
+        
+    def delete_features(self, keys: List[str]) -> None:
+        """
+        Deletes features by their keys.
+
+        Args:
+            keys (List[str]): List of unique keys for the features.
+        """
+        keys = [self.convert_key(key) for key in keys]        
+
+        self.feature_io.delete_features(keys)
     
     def list_keys(self) -> List[str]:
         """

@@ -79,6 +79,7 @@ exists = feature_utils.exists("example_id")
 
 # Delete a feature
 feature_utils.delete_feature("example_id")
+feature_utils.delete_features(["example_id1", "example_id2"])
 ```
 
 ---
