@@ -32,8 +32,11 @@ class FeatureUtils:
 
         # Load or initialize metadata and feature io
         assert storage_backend in ["ZIP"], "Invalid storage backend. Must be one of 'HDF5' or 'ZIP'."
+        self.feature_io = None
         if storage_backend == "ZIP":
             self.feature_io = ZIPFeatureIO(self.base_dir, self.staging_dir, shard_size, require_features_exist)
+        else:
+            raise NotImplementedError("Only ZIP storage backend is supported as of now.")
     
     def convert_key(self, key: Any) -> str:
         """
@@ -185,4 +188,5 @@ class FeatureUtils:
         """
         Destructor to ensure data is saved when the object is deleted.
         """
-        self.save()
+        if self.feature_io is not None:
+            self.save()
